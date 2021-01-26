@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autocomplete</title>
+    <link rel='stylesheet'
+        href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css' />
+    <link rel='stylesheet' href='/style.css' />
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.bundle.js'></script>
+    <style>
+    	.custom-search-bar{
+		    width: 300px;
+		}
+
+		.custom-search-bar input{
+		    width: 100%;
+		}
+
+		.custom-search-suggestions{
+			display: none;
+		    width: 98%;
+		    margin-left: 1.5%;
+		    background-color: rgb(252, 252, 252);
+		    max-height: 200px;
+		    overflow-y: scroll;
+		    -webkit-box-shadow: 0px 2px 10px 0px rgba(117,117,117,1);
+		    -moz-box-shadow: 0px 2px 10px 0px rgba(117,117,117,1);
+		    box-shadow: 0px 2px 10px 0px rgba(117,117,117,1);
+		    border-bottom-right-radius: 5px;
+		    border-bottom-left-radius: 5px;
+		    padding-left: 5px;
+		    padding-right: 5px;
+		}
+
+		.custom-search-suggestions div{
+		    cursor: pointer; 
+		    border-bottom: 1px solid rgb(223, 223, 223);
+		    padding-bottom: 4px;
+		}
+
+		.sc2::-webkit-scrollbar {
+		    width: 5px;
+		    height: 5px;
+		  }
+		  .sc2::-webkit-scrollbar-track {
+		    background-color: rgba(119, 119, 119, 0.1);
+		    border-radius: 10px;
+		  }
+		  .sc2::-webkit-scrollbar-thumb {
+		    background-color: #747474;
+		    border-radius: 10px;
+		  }
+    </style>
+</head>
+
+<body>
+    <div class="mt-5 d-flex justify-content-center">
+
+        <div class="custom-search-bar" id="country_list">
+            <label>Country List</label>
+            <input type="text" data-country="">
+            <div class="custom-search-suggestions sc2"></div>
+        </div>
+
+    </div>
+
+    <script>
+
+        function str_highlight_text(string, str_to_highlight) {
+            var reg = new RegExp(str_to_highlight, 'gi');
+            return string.replace(reg, function (str) { return '<b>' + str + '</b>' });
+        }
+
+        $(document).ready(function () {
+
+            var id = $("#country_list")
+            var jsonData = `[
+                {"country":"india", "capital": "delhi"},
+                {"country":"china", "capital": "biejijng"},
+                {"country":"pakistan", "capital": "lahor"},
+                {"country":"usa", "capital": "new york"}
+            ]`;
+            id.find("input").data("country", jsonData)
+
+            dataTagAutoComplete("country_list", "country")
+
+            function dataTagAutoComplete(IdOfCustomSearchBar) {
+                var url = "http://localhost:8080/api.php"
+                var suggestionList = $("#" + IdOfCustomSearchBar).find("div");
+                var suggestionInput = $("#" + IdOfCustomSearchBar).find("input");
+
+                suggestionInput.on("focusout", suggestionInput, function () {
+                    setTimeout(() => {
+                        suggestionList.hide();
+                    }, 500);
+                });
+
+                suggestionInput.on("keyup", suggestionInput, function () {
+                    var inputVal = $(this).val();
+                    suggestionList.html("");
+                    respArr = [];
+
+                    if (inputVal == '') {
+                        suggestionList.hide();
+                    } else {
+                        $.ajax({
+                            type: "GET",
+                            url: url,
+                            data: {
+                                "string": inputVal
+                            },
+                            success: function (response) {
+                                respArr = response
+                                if (respArr.length == 0) {
+                                    suggestionList.append("<div>No data For <b>" + inputVal + "</b></div>");
+                                    suggestionList.show();
+                                } else {
+                                    var anyMatch = false;
+                                    JSON.parse(respArr).forEach(function (value, index) {
+                                        if (value.country.toLowerCase().includes(inputVal.toLowerCase())) {
+                                            html = "<div>" + str_highlight_text(value.country, inputVal) + "</div>";
+                                            suggestionList.append(html);
+                                            suggestionList.show();
+                                            anyMatch = true;
+                                        }
+                                    })
+
+                                    if (!anyMatch) {
+                                        suggestionList.append("<div>No data For <b>" + inputVal + "</b></div>");
+                                        suggestionList.show();
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                });
+
+                suggestionList.on("click", "div", function () {
+                    suggestionInput.val($(this).text());
+                    suggestionList.hide();
+                })
+
+            }
+
+        });
+    </script>
+
+
+</body>
+
+</html>
